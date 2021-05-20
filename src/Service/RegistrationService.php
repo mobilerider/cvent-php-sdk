@@ -27,7 +27,7 @@ class RegistrationService extends BaseHttpService
      * @param array $filters
      * @return array
      */
-    public function findAttendees(array $filters = [])
+    public function findAttendees(array $filters = [], array &$metadata = [])
     {
         return $this->getRepository(AttendeeRepository::class)->all($filters);
     }
