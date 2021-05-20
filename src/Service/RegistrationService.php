@@ -49,8 +49,8 @@ class RegistrationService extends BaseHttpService
      * @param array $filters
      * @return array
      */
-    public function findEvents(array $filters = [])
+    public function findEvents(array $filters = [], array &$metadata = [])
     {
-        return $this->getRepository(EventRepository::class)->all($filters);
+        return $this->getRepository(EventRepository::class)->all($filters, false, $metadata);
     }
 }

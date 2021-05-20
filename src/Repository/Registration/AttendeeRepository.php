@@ -16,6 +16,7 @@ class AttendeeRepository extends BaseRepository
         $options["queryBuilderClass"] = MrApiQueryBuilder::class;
         parent::__construct($client, $options);
     }
+
     protected function getResourcePath()
     {
         return Sdk::API_VERSION . mr_plural($this->getResource());
@@ -33,7 +34,13 @@ class AttendeeRepository extends BaseRepository
 
     public function parseMany(array $data, array &$metadata = [])
     {
-        return $data;
+        if (!$data) {
+            return [];
+        }
+        
+        $metadata = $data["paging"] ?? [];
+
+        return $data["data"] ?? [];
     }
 
     protected function buildQuery(array $filters, array $params)

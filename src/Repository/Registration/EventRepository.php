@@ -1,12 +1,11 @@
 <?php
 
-
 namespace Mr\CventSdk\Repository\Registration;
 
-use Mr\CventSdk\Model\Registration\Event;
 use Mr\Bootstrap\Http\Filtering\MrApiQueryBuilder;
 use Mr\Bootstrap\Interfaces\HttpDataClientInterface;
 use Mr\Bootstrap\Repository\BaseRepository;
+use Mr\CventSdk\Model\Registration\Event;
 use Mr\CventSdk\Sdk;
 
 class EventRepository extends BaseRepository
@@ -20,12 +19,12 @@ class EventRepository extends BaseRepository
     {
         return Sdk::API_VERSION . mr_plural($this->getResource());
     }
-    
+
     public function getModelClass()
     {
         return Event::class;
     }
-    
+
     public function parseOne(array $data, array &$metadata = [])
     {
         return $data;
@@ -33,7 +32,13 @@ class EventRepository extends BaseRepository
 
     public function parseMany(array $data, array &$metadata = [])
     {
-        return $data;
+        if (!$data) {
+            return [];
+        }
+        
+        $metadata = $data["paging"] ?? [];
+
+        return $data["data"] ?? [];
     }
 
     protected function buildQuery(array $filters, array $params)
