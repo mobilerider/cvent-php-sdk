@@ -29,7 +29,7 @@ class RegistrationService extends BaseHttpService
      */
     public function findAttendees(array $filters = [], array &$metadata = [])
     {
-        return $this->getRepository(AttendeeRepository::class)->all($filters);
+        return $this->getRepository(AttendeeRepository::class)->all($filters, false, $metadata);
     }
 
     /**
