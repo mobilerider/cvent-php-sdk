@@ -4,20 +4,20 @@ namespace Mr\CventSdk;
 
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\HandlerStack;
+use Mr\Bootstrap\Container;
+use Mr\Bootstrap\Interfaces\ContainerAccessorInterface;
+use Mr\Bootstrap\Traits\ContainerAccessor;
+use Mr\Bootstrap\Utils\Logger;
 use Mr\CventSdk\Exception\CventException;
 use Mr\CventSdk\Exception\InvalidCredentialsException;
 use Mr\CventSdk\Http\Client;
 use Mr\CventSdk\Http\Middleware\ErrorsMiddleware;
 use Mr\CventSdk\Http\Middleware\TokenAuthMiddleware;
+use Mr\CventSdk\Model\Registration\Attendee;
+use Mr\CventSdk\Model\Registration\Event;
 use Mr\CventSdk\Repository\Registration\AttendeeRepository;
 use Mr\CventSdk\Repository\Registration\EventRepository;
 use Mr\CventSdk\Service\RegistrationService;
-use Mr\CventSdk\Model\Registration\Attendee;
-use Mr\CventSdk\Model\Registration\Event;
-use Mr\Bootstrap\Container;
-use Mr\Bootstrap\Interfaces\ContainerAccessorInterface;
-use Mr\Bootstrap\Traits\ContainerAccessor;
-use Mr\Bootstrap\Utils\Logger;
 
 /**
  * @method static RegistrationService getRegistrationService
@@ -43,7 +43,7 @@ class Sdk implements ContainerAccessorInterface
 
     private $defaultHeaders = [
         'Accept' => 'application/json',
-        'Content-Type' => 'application/x-www-form-urlencoded'
+        'Content-Type' => 'application/x-www-form-urlencoded',
     ];
 
     /**
@@ -64,14 +64,14 @@ class Sdk implements ContainerAccessorInterface
         $this->options = $options;
 
         $httpCommon = [
-            "debug" => $this->options["debug"] ?? false
+            "debug" => $this->options["debug"] ?? false,
         ];
 
         $this->httpOptions = [
             'registration' => array_merge(
                 [
                     'base_uri' => static::BASE_URL,
-                    'headers' => $this->defaultHeaders
+                    'headers' => $this->defaultHeaders,
                 ],
                 $httpCommon,
                 $httpOptions['registration'] ?? []
@@ -100,61 +100,61 @@ class Sdk implements ContainerAccessorInterface
         $customDefinitions = isset($options['definitions']) ? $options['definitions'] : [];
 
         $definitions = $customDefinitions + [
-                'Logger' => [
-                    'single' => true,
-                    'instance' => Logger::getInstance(),
+            'Logger' => [
+                'single' => true,
+                'instance' => Logger::getInstance(),
+            ],
+            // Clients
+            'RegistrationClient' => [
+                'single' => true,
+                'class' => Client::class,
+                'arguments' => [
+                    'options' => array_merge($httpDefaultRuntimeOptions, $this->httpOptions['registration']),
                 ],
-                // Clients
-                'RegistrationClient' => [
-                    'single' => true,
-                    'class' => Client::class,
-                    'arguments' => [
-                        'options' => array_merge($httpDefaultRuntimeOptions, $this->httpOptions['registration'])
-                    ]
+            ],
+            // Services
+            RegistrationService::class => [
+                'single' => true,
+                'class' => RegistrationService::class,
+                'arguments' => [
+                    'client' => \mr_srv_arg('RegistrationClient'),
                 ],
-                // Services
-                RegistrationService::class => [
-                    'single' => true,
-                    'class' => RegistrationService::class,
-                    'arguments' => [
-                        'client' => \mr_srv_arg('RegistrationClient')
-                    ]
+            ],
+            // Repositories
+            AttendeeRepository::class => [
+                'single' => true,
+                'class' => AttendeeRepository::class,
+                'arguments' => [
+                    'client' => \mr_srv_arg('RegistrationClient'),
+                    'options' => [],
                 ],
-                // Repositories
-                AttendeeRepository::class => [
-                    'single' => true,
-                    'class' => AttendeeRepository::class,
-                    'arguments' => [
-                        'client' => \mr_srv_arg('RegistrationClient'),
-                        'options' => []
-                    ]
+            ],
+            EventRepository::class => [
+                'single' => true,
+                'class' => EventRepository::class,
+                'arguments' => [
+                    'client' => \mr_srv_arg('RegistrationClient'),
+                    'options' => [],
                 ],
-                EventRepository::class => [
-                    'single' => true,
-                    'class' => EventRepository::class,
-                    'arguments' => [
-                        'client' => \mr_srv_arg('RegistrationClient'),
-                        'options' => []
-                    ]
+            ],
+            // Models
+            Attendee::class => [
+                'single' => false,
+                'class' => Attendee::class,
+                'arguments' => [
+                    'repository' => \mr_srv_arg(AttendeeRepository::class),
+                    'data' => null,
                 ],
-                // Models
-                Attendee::class => [
-                    'single' => false,
-                    'class' => Attendee::class,
-                    'arguments' => [
-                        'repository' => \mr_srv_arg(AttendeeRepository::class),
-                        'data' => null
-                    ]
+            ],
+            Event::class => [
+                'single' => false,
+                'class' => Event::class,
+                'arguments' => [
+                    'repository' => \mr_srv_arg(EventRepository::class),
+                    'data' => null,
                 ],
-                Event::class => [
-                    'single' => false,
-                    'class' => Event::class,
-                    'arguments' => [
-                        'repository' => \mr_srv_arg(EventRepository::class),
-                        'data' => null
-                    ]
-                ],
-            ];
+            ],
+        ];
 
         $this->container = new Container($definitions);
     }
@@ -166,36 +166,35 @@ class Sdk implements ContainerAccessorInterface
 
     protected function authenticate()
     {
-        $encode = base64_encode($this->clientId.':'.$this->clientSecret);
-       
+        $encode = base64_encode($this->clientId . ':' . $this->clientSecret);
+
         $headers = [
-            'headers'=>[
-              'Authorization' => 'Basic '.$encode,
-              'Content-Type' => 'application/x-www-form-urlencoded'
-            ]
+            'headers' => [
+                'Authorization' => 'Basic ' . $encode,
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            ],
         ];
         $client = new Client($headers);
         $data = null;
-       
+
         try {
-            $data = $client->request('POST', static::BASE_URL . static::API_VERSION . 'oauth2/token', ['form_params'=> [
-               'grant_type' => 'client_credentials',
-               'client_ider' => $this->clientId
+            $data = $client->request('POST', static::BASE_URL . static::API_VERSION . 'oauth2/token', ['form_params' => [
+                'grant_type' => 'client_credentials',
+                'client_id' => $this->clientId,
             ]]);
         } catch (RequestException $ex) {
             // Just avoid request exception from propagating
-            if ($this->isDebug()) {
-                \mr_logger()->error($ex->getMessage());
-            }
+            \mr_logger()->error($ex->getMessage());
+
         }
         $body = $data->getBody();
-       
+
         $data = json_decode($body, true);
 
-        if (! isset($data, $data['access_token'])) {
+        if (!isset($data, $data['access_token'])) {
             throw new InvalidCredentialsException();
         }
-      
+
         return $this->token = $data['access_token'];
     }
 
@@ -270,7 +269,6 @@ class Sdk implements ContainerAccessorInterface
     {
         return $this->token;
     }
-
 
     /**
      * @return RegistrationService
