@@ -2,7 +2,7 @@
     "name": "mobilerider/cvent-php-sdk",
     "type": "library",
     "description": "PHP client library to consume Cvent services",
-    "version": "0.1.0-alpha.1",
+    "version": "0.1.0-beta.1",
     "keywords": [
         "Cvent",
         "api",
@@ -38,13 +38,14 @@
         }
     ],
     "require": {
-        "php": "^7.0",
-        "guzzlehttp/guzzle": "~6.0",
-        "mobilerider/mobilerider-php-bootstrap": "*"
+        "php": "^7.3|^8.0",
+        "guzzlehttp/guzzle": "^7.0.1",
+        "mobilerider/mobilerider-php-bootstrap": "dev-feature/upgrade-php-8"
     },
     "require-dev": {
         "phpunit/phpunit": "^6.2",
         "vlucas/phpdotenv": "^4.0"
     },
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "prefer-stable" : true
 }
